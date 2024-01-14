@@ -1,0 +1,23 @@
+Platform Support:
+-----------------
+This code was written for Linux and has been tested on the following
+platforms:
+
+1. Ubuntu 22.04, kernel 6.5.0-10013
+
+Dependencies:
+-------------
+This project is intended to be dropped into an existing project and
+compiled in. As such, it does not include build targets for dynamic or
+static libraries. To build this project, you'll need the following shared
+libraries:
+
+1. GLib >= 2.72.4
+
+Building
+---------
+Once you have these dependencies, simply use the makefile to build the
+project. The following targets are supported:
+
+default, release: build the release version of the demo
+debug: build the debug version of the demo
