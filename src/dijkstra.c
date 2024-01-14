@@ -1,21 +1,75 @@
 #include "dijkstra.h"
 
-#include <glib.h>
-#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
 #include <float.h>
 
-typedef struct dm_node_t {
+#define new(a, t, n)  (t *)alloc(a, sizeof(t), n)
+
+static void *alloc(arena *a, ptrdiff_t size, ptrdiff_t count)
+{
+    ptrdiff_t alignment = -(uintptr_t)a->beg & (sizeof(void *) - 1);
+    ptrdiff_t available = a->end - a->beg - alignment;
+    if (count > available/size) {
+        assert(0);  // out of memory
+    }
+    char *r = a->beg + alignment;
+    a->beg += alignment + size*count;
+    return memset(r, 0, size*count);
+}
+
+typedef struct node node;
+struct node {
+    node  *next;
     size_t idx;
-    float distance;
-} dm_node_t;
+};
 
-static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources);
+typedef struct {
+    node  *free;
+    node  *head;
+    node **tail;
+} queue;
 
-DMError build_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, size_t *sources, uint32_t n_sources) {
+static queue *newqueue(arena *perm)
+{
+    queue *q = new(perm, queue, 1);
+    q->tail = &q->head;
+    return q;
+}
+
+static void push(queue *q, size_t idx, arena *perm)
+{
+    node *n = q->free;
+    if (n) {
+        q->free = n->next;
+    } else {
+        n = new(perm, node, 1);
+    }
+    n->idx = idx;
+    *q->tail = n;
+    q->tail = &n->next;
+}
+
+static size_t pop(queue *q)
+{
+    assert(q->head);
+    node *n = q->head;
+    q->head = n->next;
+    if (!n->next) {
+        q->tail = &q->head;
+    }
+    n->next = q->free;
+    q->free = n;
+    return n->idx;
+}
+
+static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena);
+
+DMError build_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, size_t *sources, uint32_t n_sources, arena *perm) {
     if (!dm || !sources) return DM_INAVLID_PTR;
 
-    dm->map = malloc(w * h * sizeof(*dm->map));
-    if (!dm->map) return DM_NO_MEM;
+    assert(!w || h <= SIZE_MAX/w);
+    dm->map = new(perm, float, (size_t)w*h);
 
     for (size_t i = 0; i < w * h; i++)
         dm->map[i] = FLT_MAX;
@@ -23,7 +77,7 @@ DMError build_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, size_t *sources,
     for (uint32_t i = 0; i < n_sources; i++)
         dm->map[sources[i]] = 0;
 
-    DMError ret = do_dijkstra_map(dm, sources, n_sources);
+    DMError ret = do_dijkstra_map(dm, sources, n_sources, *perm);
     if (ret != DM_NO_ERR) return ret;
 
     return DM_NO_ERR;
@@ -34,41 +88,27 @@ void set_successor_fn(DijkstraMap *dm, successor_fn s, const void *state) {
     dm->successor_state = state;
 }
 
-DMError destroy_dijkstra_map(DijkstraMap *dm) {
-    free(dm->map);
-    return DM_NO_ERR;
-}
-
-static dm_node_t *make_node(size_t idx, float distance) {
-    dm_node_t *node = malloc(sizeof(*node));
-    *node = (dm_node_t) { idx, distance };
-    return node;
-}
-
-static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources) {
-    GQueue frontier = G_QUEUE_INIT;
+static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena scratch) {
+    queue *frontier = newqueue(&scratch);
 
     for (uint32_t i = 0; i < n_sources; i++)
-        g_queue_push_tail(&frontier, make_node(sources[i], 0));
+        push(frontier, sources[i], &scratch);
 
-    dm_node_t *node;
-    while ((node = g_queue_pop_head(&frontier))) {
+    while (frontier->head) {
+        size_t idx = pop(frontier);
         successor_t *exits;
         uint8_t n_exits;
-        dm->successors(node->idx, dm->successor_state, &exits, &n_exits);
+        dm->successors(idx, dm->successor_state, &exits, &n_exits);
 
         for (uint8_t i = 0; i < n_exits; i++) {
-            float new_dist = node->distance + exits[i].cost;
+            float new_dist = dm->map[idx] + exits[i].cost;
             float old_dist = dm->map[exits[i].idx];
 
             if (new_dist >= old_dist) continue;
             dm->map[exits[i].idx] = new_dist;
-            g_queue_push_tail(&frontier, make_node(exits[i].idx, new_dist));
+            push(frontier, exits[i].idx, &scratch);
         }
-
-        free(node);
     }
 
-    g_queue_clear_full(&frontier, free);
     return DM_NO_ERR;
 }

@@ -63,6 +63,11 @@ int main(void) {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
+    int cap = 1<<28;
+    arena scratch = {0};
+    scratch.beg = malloc(cap);
+    scratch.end = scratch.beg + cap;
+
     MAP_WIDTH = w.ws_col;
     MAP_HEIGHT = w.ws_row - 2;
 
@@ -79,7 +84,7 @@ int main(void) {
     struct timespec begin, end;
     clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
 
-    build_dijkstra_map(&dm, MAP_WIDTH, MAP_HEIGHT, sources, n_sources);
+    build_dijkstra_map(&dm, MAP_WIDTH, MAP_HEIGHT, sources, n_sources, &scratch);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     double time_spent = (end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
@@ -94,6 +99,5 @@ int main(void) {
         if (i % MAP_WIDTH == MAP_WIDTH - 1) printf("\n");
     }
 
-    destroy_dijkstra_map(&dm);
     return 0;
 }
