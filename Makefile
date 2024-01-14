@@ -4,7 +4,7 @@ TDIR=test
 CC=gcc
 CFLAGS=-I$(IDIR) $(shell pkg-config --cflags glib-2.0) -Wall
 DEBUG_FLAGS=-g3 -fsanitize=undefined -fno-sanitize-recover
-RELEASE_FLAGS=-O3
+RELEASE_FLAGS=-O3 -flto
 
 LIBS=$(shell pkg-config --libs glib-2.0)
 
