@@ -65,27 +65,32 @@ static size_t pop(queue *q)
 
 static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena);
 
-DMError build_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, size_t *sources, uint32_t n_sources, arena *perm) {
-    if (!dm || !sources) return DM_INAVLID_PTR;
+DMError init_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, successor_fn s, const void *state, arena *perm) {
+    if (!dm) return DM_INAVLID_PTR;
 
     assert(!w || h <= SIZE_MAX/w);
     dm->map = new(perm, float, (size_t)w*h);
+    dm->w = w;
+    dm->h = h;
 
-    for (size_t i = 0; i < w * h; i++)
+    dm->successors = s;
+    dm->successor_state = state;
+
+    return DM_NO_ERR;
+}
+
+DMError build_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena *perm) {
+    if (!sources) return DM_INAVLID_PTR;
+
+    for (size_t i = 0; i < dm->w * dm->h; i++)
         dm->map[i] = FLT_MAX;
 
     for (uint32_t i = 0; i < n_sources; i++)
         dm->map[sources[i]] = 0;
 
     DMError ret = do_dijkstra_map(dm, sources, n_sources, *perm);
-    if (ret != DM_NO_ERR) return ret;
 
-    return DM_NO_ERR;
-}
-
-void set_successor_fn(DijkstraMap *dm, successor_fn s, const void *state) {
-    dm->successors = s;
-    dm->successor_state = state;
+    return ret;
 }
 
 static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena scratch) {

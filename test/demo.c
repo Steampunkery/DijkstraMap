@@ -79,12 +79,12 @@ int main(void) {
         sources[i] = random() % (MAP_WIDTH * MAP_HEIGHT);
 
     DijkstraMap dm;
-    set_successor_fn(&dm, successors8, NULL);
+    init_dijkstra_map(&dm, MAP_WIDTH, MAP_HEIGHT, successors8, NULL, &scratch);
 
     struct timespec begin, end;
     clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
 
-    build_dijkstra_map(&dm, MAP_WIDTH, MAP_HEIGHT, sources, n_sources, &scratch);
+    build_dijkstra_map(&dm, sources, n_sources, &scratch);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     double time_spent = (end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
