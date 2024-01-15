@@ -2,21 +2,19 @@ IDIR=include
 SDIR=src
 TDIR=test
 CC=gcc
-CFLAGS=-I$(IDIR) $(shell pkg-config --cflags glib-2.0) -Wall
+CFLAGS=-I$(IDIR) -Wall
 DEBUG_FLAGS=-g3 -fsanitize=undefined -fno-sanitize-recover
 RELEASE_FLAGS=-O3 -flto
-
-LIBS=$(shell pkg-config --libs glib-2.0)
 
 DIJKSTRA_DEPS=$(TDIR)/demo.c $(SDIR)/dijkstra.c
 
 default: release
 
 release: $(DIJKSTRA_DEPS) $(IDIR)/dijkstra.h
-	$(CC) -o demo $(DIJKSTRA_DEPS) $(CFLAGS) $(RELEASE_FLAGS) $(LIBS)
+	$(CC) -o demo $(DIJKSTRA_DEPS) $(CFLAGS) $(RELEASE_FLAGS)
 
 debug: $(DIJKSTRA_DEPS) $(IDIR)/dijkstra.h
-	$(CC) -o demo $(DIJKSTRA_DEPS) $(CFLAGS) $(DEBUG_FLAGS) $(LIBS)
+	$(CC) -o demo $(DIJKSTRA_DEPS) $(CFLAGS) $(DEBUG_FLAGS)
 
 .PHONY: clean
 
