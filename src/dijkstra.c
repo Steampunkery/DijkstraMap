@@ -6,7 +6,7 @@
 
 #define new(a, t, n)  (t *)alloc(a, sizeof(t), n)
 
-static void *alloc(arena *a, ptrdiff_t size, ptrdiff_t count)
+static void *alloc(DMArena *a, ptrdiff_t size, ptrdiff_t count)
 {
     ptrdiff_t alignment = -(uintptr_t)a->beg & (sizeof(void *) - 1);
     ptrdiff_t available = a->end - a->beg - alignment;
@@ -30,14 +30,14 @@ typedef struct {
     node **tail;
 } queue;
 
-static queue *newqueue(arena *perm)
+static queue *newqueue(DMArena *perm)
 {
     queue *q = new(perm, queue, 1);
     q->tail = &q->head;
     return q;
 }
 
-static void push(queue *q, size_t idx, arena *perm)
+static void push(queue *q, size_t idx, DMArena *perm)
 {
     node *n = q->free;
     if (n) {
@@ -63,9 +63,9 @@ static size_t pop(queue *q)
     return n->idx;
 }
 
-static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena);
+static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, DMArena);
 
-DMError init_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, successor_fn s, const void *state, arena *perm) {
+DMError init_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, successor_fn s, const void *state, DMArena *perm) {
     if (!dm) return DM_INAVLID_PTR;
 
     assert(!w || h <= SIZE_MAX/w);
@@ -79,7 +79,7 @@ DMError init_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, successor_fn s, c
     return DM_NO_ERR;
 }
 
-DMError build_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena *perm) {
+DMError build_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, DMArena *perm) {
     if (!sources) return DM_INAVLID_PTR;
 
     for (size_t i = 0; i < dm->w * dm->h; i++)
@@ -93,7 +93,7 @@ DMError build_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources,
     return ret;
 }
 
-static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena scratch) {
+static DMError do_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, DMArena scratch) {
     queue *frontier = newqueue(&scratch);
 
     for (uint32_t i = 0; i < n_sources; i++)

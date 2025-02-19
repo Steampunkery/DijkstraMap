@@ -5,7 +5,7 @@
 typedef struct {
     char *beg;
     char *end;
-} arena;
+} DMArena;
 
 typedef struct successor_t {
     size_t idx;
@@ -25,5 +25,5 @@ typedef struct DijkstraMap {
 
 typedef enum { DM_NO_ERR, DM_INAVLID_PTR, DM_NO_MEM } DMError;
 
-DMError build_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, arena *perm);
-DMError init_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, successor_fn s, const void *state, arena *perm);
+DMError build_dijkstra_map(DijkstraMap *dm, size_t *sources, uint32_t n_sources, DMArena *perm);
+DMError init_dijkstra_map(DijkstraMap *dm, size_t w, size_t h, successor_fn s, const void *state, DMArena *perm);
